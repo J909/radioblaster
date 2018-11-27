@@ -1,0 +1,26 @@
+{
+  "name": "radioblaster",
+  "version": "0.1.0",
+  "description": "Web services for radio apps",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/J909/radioblaster.git"
+  },
+  "author": "Jonas Hinn",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/J909/radioblaster/issues"
+  },
+  "homepage": "https://github.com/J909/radioblaster#readme",
+  "dependencies": {
+    "express": "^4.16.4",
+    "icecast-parser": "^3.0.0",
+    "lodash.clonedeep": "^4.5.0",
+    "moment": "^2.22.2"
+  }
+}

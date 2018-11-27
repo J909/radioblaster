@@ -6,10 +6,10 @@ This webservice connects to a given Icecast radio stream, extracts Icy audio met
   npm install
   ```
 
-2. Export environment variable with Icecast stream URL:
+2. Export environment variables with Icecast stream URL:
 
   ```bash
-  export RADIO_STREAM_URL=xxx
+  export RADIO_STREAM_URL=xyz
   ```
 
 3. Start the server:
