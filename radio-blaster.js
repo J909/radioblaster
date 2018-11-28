@@ -2,9 +2,9 @@
 
 const moment = require('moment');
 const RadioParser = require('icecast-parser');
-var cloneDeep = require('lodash.clonedeep');
+const cloneDeep = require('lodash.clonedeep');
 
-var radioblaster = {};
+let radioblaster = {};
 
 const radioParser = new RadioParser({
     url: process.env.RADIO_STREAM_URL,
@@ -15,15 +15,18 @@ const radioParser = new RadioParser({
     metadataInterval: 5 // update metadata after 5 seconds
 });
 
-var currentMeta = {};
+let currentMeta = {};
 
 radioblaster.start = function() {
-	var currentTitle;
+	let currentTitle;
 	radioParser.on('metadata', function(metadata) {
 	    if (currentTitle !== metadata.StreamTitle) {
 	    	currentTitle = metadata.StreamTitle;
 	    	updateCurrentMeta(currentTitle);
 	    }
+	});
+	radioParser.on('error', function(error) {
+		log(error);
 	});
 }
 
@@ -50,13 +53,13 @@ function updateCurrentMeta(currentTitle) {
 }
 
 function logMeta(meta) {
-	var time = new moment().format("HH:mm:ss");
+	let time = new moment().format("HH:mm:ss");
 	console.log(time + ': Artist=' + meta['artist'] + ' Title=' + meta['title']);
 }
 
 function log(message) {
-	var time = new moment().format("HH:mm:ss");
-	console.log(time + ': ' + message);
+	let time = new moment().format("HH:mm:ss");
+	console.log(time + ': ', message);
 }
 
 function logBlip() {
