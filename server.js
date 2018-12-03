@@ -11,9 +11,12 @@ radioBlaster.start();
 
 app.get('/', (req, res) => {
   let metadata = radioBlaster.getCurrentMeta();
-  res.send('<b>RadioBlaster</b> is listening...<br>'
-  	+ 'Artist: ' + metadata.artist + '<br>'
-  	+ 'Title: ' + metadata.title + '<br>');
+  res.send(
+    '<b>RadioBlaster</b> is listening...<br>'
+    + `Artist: ${metadata.artist}<br>`
+    + `Title: ${metadata.title}<br>`
+    + "Artwork:<br>"
+    + `<img src="${metadata.artworkUrl}"/>`);
 });
 
 // Listen to the App Engine-specified port, or 3000 otherwise
