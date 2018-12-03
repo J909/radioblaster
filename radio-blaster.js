@@ -46,12 +46,12 @@ function updateCurrentMeta(currentTitle) {
   var metaParts = currentTitle.split(' - ');
   if (metaParts.length > 1) {
     currentMeta = {
-      'artist': metaParts[0],
-      'title': metaParts[1],
+      'artist': sanitize(metaParts[0]),
+      'title': sanitize(metaParts[1]),
       'artworkUrl': ""
     };
-    logMeta(currentMeta);
-    artWorker.findArtworkUrl(metaParts[0], metaParts[1])
+    log(JSON.stringify(currentMeta));
+    artWorker.findArtworkUrl(currentMeta.artist, currentMeta.title)
     .then(artworkUrl => {
       log(artworkUrl);
       currentMeta.artworkUrl = artworkUrl;
@@ -67,9 +67,8 @@ function updateCurrentMeta(currentTitle) {
   }
 }
 
-function logMeta(meta) {
-  let time = new moment().format("HH:mm:ss");
-  console.log(`${time}: Artist=${meta.artist} Title=${meta.title}`);
+function sanitize(text) {
+  return text.replace(/[\u{FFF0}-\u{FFFF}]/gu, "");
 }
 
 function log(message) {
