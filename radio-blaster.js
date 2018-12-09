@@ -4,6 +4,7 @@ const moment = require('moment');
 const RadioParser = require('icecast-parser');
 const cloneDeep = require('lodash.clonedeep');
 const ArtWorker = require('./artworker');
+const FileStorageClient = require('./image-storage');
 
 let radioblaster = {};
 

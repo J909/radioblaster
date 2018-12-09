@@ -4,3 +4,4 @@ node_modules
 .env
 .project
 app.yaml
+gcloud-config.json
