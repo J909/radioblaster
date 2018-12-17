@@ -4,4 +4,4 @@ node_modules
 .env
 .project
 app.yaml
-gcloud-config.json
+storage-service-account.json

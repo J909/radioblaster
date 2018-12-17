@@ -4,11 +4,11 @@ const moment = require('moment');
 const RadioParser = require('icecast-parser');
 const cloneDeep = require('lodash.clonedeep');
 const ArtWorker = require('./artworker');
-const FileStorageClient = require('./image-storage');
+const ImageCache = require('./image-cache');
+const got = require('got');
+const pkg = require('./package.json');
 
-let radioblaster = {};
-
-const userAgentApplication = process.env.USER_AGENT_APPLICATION;
+/** Initialize radio stream parser. */
 const radioStreamUrl = process.env.RADIO_STREAM_URL;
 const radioParser = new RadioParser({
     url: radioStreamUrl,
@@ -18,58 +18,111 @@ const radioParser = new RadioParser({
     emptyInterval: 5 * 60, // 5 min back off
     metadataInterval: 5 // update metadata after 5 seconds
 });
-const artWorker = new ArtWorker(userAgentApplication);
 
-let currentMeta = {};
+/** Initialize coverart search client. */
+const userAgent = getUserAgent();
+const artWorker = new ArtWorker(userAgent);
 
-radioblaster.start = function() {
-  let currentTitle;
-  radioParser.on('metadata', function(metadata) {
-    if (metadata.StreamTitle && (currentTitle !== metadata.StreamTitle)) {
-      currentTitle = metadata.StreamTitle;
-      updateCurrentMeta(currentTitle);
-    }
-  });
-  radioParser.on('error', function(error) {
-    log(error);
-  });
-}
+/** Initialize image cache. */
+const projectId = process.env.GCLOUD_PROJECT;
+const bucketId = process.env.CLOUD_BUCKET;
+const salt = process.env.SALT;
+const imageCache = new ImageCache(projectId, bucketId, salt);
 
-radioblaster.getStreamUrl = function() {
-  return radioParser.getConfig('url');
-}
+let playingMeta = {};
 
-radioblaster.getCurrentMeta = function() {
-  return cloneDeep(currentMeta);
-}
-
-function updateCurrentMeta(currentTitle) {
-  var metaParts = currentTitle.split(' - ');
+function updatePlayingMeta(currentTitle) {
+  let metaParts = currentTitle.split(' - ');
   if (metaParts.length > 1) {
-    currentMeta = {
-      'artist': sanitize(metaParts[0]),
-      'title': sanitize(metaParts[1]),
-      'artworkUrl': ""
-    };
-    log(JSON.stringify(currentMeta));
-    artWorker.findArtworkUrl(currentMeta.artist, currentMeta.title)
+    setPlayingMeta(sanitize(metaParts[1]), sanitize(metaParts[0]));
+    let newMeta = getPlayingMeta();
+
+    artWorker.findArtworkUrl(newMeta.artist, newMeta.title)
     .then(artworkUrl => {
-      log(artworkUrl);
-      currentMeta.artworkUrl = artworkUrl;
+      log(`Validating artwork URL: ${artworkUrl}`);
+      return got.head(artworkUrl, {
+        "user-agent": userAgent
+      })
+      .catch(error => {
+        if (error.statusCode === 404) {
+          throw new Error(`Artwork not found`);
+        }
+        console.log(`Failed to validate artwork URL: ${error.statusCode} ${error.statusMessage}`);
+        throw new Error(error);
+      });
+    })
+    .then(response => {
+      let contentType = response.headers['content-type'];
+      if (!isValidContentType(contentType)) {
+        throw new Error(`Invalid artwork content-type: ${contentType}`);
+      }
+      newMeta.artworkUrl = response.url;
+      newMeta.artworkContentType = contentType;
+
+      log(`Caching artwork from ${response.url} ...`);
+      return imageCache.find();
+    })
+    .then(artworkUrl => {
+      if (!artworkUrl) {
+        return imageCache.store(
+          got.stream(newMeta.artworkUrl, {
+            "user-agent": userAgent
+          }),
+          currentTitle,
+          newMeta.artworkContentType);
+      }
+      return new Promise((resolve, reject) => resolve(artworkUrl));
+    })
+    .then(publicUrl => {
+      newMeta.artworkUrl = publicUrl;
+      playingMeta = newMeta;
+      log(JSON.stringify(playingMeta));
     })
     .catch(error => {
       log(error);
     });
   } else {
-    currentMeta = {
-      'title': currentTitle
-    };
-    log(currentTitle);
+    setPlayingMeta(currentTitle);
   }
+}
+
+function getPlayingMeta() {
+  return cloneDeep(playingMeta);
+}
+
+function setPlayingMeta(title) {
+  playingMeta = {
+      'title': title,
+      'artist': "",
+      'artworkUrl': "",
+      'artworkContentType': ""
+    };
+  log(JSON.stringify(playingMeta));
+}
+
+function setPlayingMeta(title, artist) {
+  playingMeta = {
+      'title': title,
+      'artist': artist,
+      'artworkUrl': "",
+      'artworkContentType': ""
+    };
+  log(JSON.stringify(playingMeta));
+}
+
+function isValidContentType(contentType) {
+  console.log("Artwork Content-Type:", contentType);
+  return contentType === "image/png" || contentType === "image/jpeg";
 }
 
 function sanitize(text) {
   return text.replace(/[\u{FFF0}-\u{FFFF}]/gu, "");
+}
+
+function getUserAgent() {
+  let userAgent = `${process.env.USER_AGENT_APPLICATION}/${pkg.version} (${process.env.USER_AGENT_OWNER})`;
+  log(`User-Agent: ${userAgent}`);
+  return userAgent;
 }
 
 function log(message) {
@@ -77,4 +130,19 @@ function log(message) {
   console.log(`${time}: `, message);
 }
 
-module.exports = radioblaster;
+module.exports = {
+  'start': () => {
+    let currentTitle;
+    radioParser.on('metadata', function(metadata) {
+      if (metadata.StreamTitle && (currentTitle !== metadata.StreamTitle)) {
+        currentTitle = metadata.StreamTitle;
+        updatePlayingMeta(currentTitle);
+      }
+    });
+    radioParser.on('error', function(error) {
+      log(error);
+    })
+  },
+  'getPlayingMeta': getPlayingMeta,
+  'getStreamUrl': () => radioParser.getConfig('url')
+};

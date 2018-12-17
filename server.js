@@ -10,7 +10,7 @@ const app = express();
 radioBlaster.start();
 
 app.get('/', (req, res) => {
-  let metadata = radioBlaster.getCurrentMeta();
+  let metadata = radioBlaster.getPlayingMeta();
   res.send(
     '<b>RadioBlaster</b> is listening...<br>'
     + `Artist: ${metadata.artist}<br>`
