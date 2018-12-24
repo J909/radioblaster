@@ -30,6 +30,7 @@ const salt = process.env.SALT;
 const imageCache = new ImageCache(projectId, bucketId, salt);
 
 let playingMeta = {};
+let onTrackUpdateListener;
 
 function updatePlayingMeta(currentTitle) {
   let metaParts = currentTitle.split(' - ');
@@ -76,28 +77,20 @@ function updatePlayingMeta(currentTitle) {
     .then(publicUrl => {
       newMeta.artworkUrl = publicUrl;
       playingMeta = newMeta;
-      log(JSON.stringify(playingMeta));
+      onTrackUpdateListener(playingMeta);
     })
     .catch(error => {
       log(error);
+      onTrackUpdateListener(playingMeta);
     });
   } else {
-    setPlayingMeta(currentTitle);
+    setPlayingMeta(currentTitle, "");
+    onTrackUpdateListener(playingMeta);
   }
 }
 
 function getPlayingMeta() {
   return cloneDeep(playingMeta);
-}
-
-function setPlayingMeta(title) {
-  playingMeta = {
-      'title': title,
-      'artist': "",
-      'artworkUrl': "",
-      'artworkContentType': ""
-    };
-  log(JSON.stringify(playingMeta));
 }
 
 function setPlayingMeta(title, artist) {
@@ -107,7 +100,6 @@ function setPlayingMeta(title, artist) {
       'artworkUrl': "",
       'artworkContentType': ""
     };
-  log(JSON.stringify(playingMeta));
 }
 
 function isValidContentType(contentType) {
@@ -144,5 +136,6 @@ module.exports = {
     })
   },
   'getPlayingMeta': getPlayingMeta,
-  'getStreamUrl': () => radioParser.getConfig('url')
+  'getStreamUrl': () => radioParser.getConfig('url'),
+  'onTrackUpdate': listener => onTrackUpdateListener = listener
 };

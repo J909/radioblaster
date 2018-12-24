@@ -24,15 +24,22 @@ This project is work in progress.
 * `GCLOUD_PROJECT`: Google Cloud Project ID. Must match `project_id` as found in the service account config file.
 * `CLOUD_BUCKET`: Globally unique ID of existing Google Cloud Storage bucket.
 * `SALT`: Salt for generating image cache keys that cannot be replicated.
-```bash
+  ```bash
   export GOOGLE_APPLICATION_CREDENTIALS=./service-account.json
   export GClOUD_PROJECT=project-id
   export CLOUD_BUCKET=bucket-id
   export SALT=crypto-salt
-```
+  ```
 
-5. Start the server:
+5. Set environment variables to define Firebase message subscription topic:
+* `RADIO_STATION_KEY`: Topic identifier of the streamed radio station.
+* `RADIO_STATION_NAME`: Human-readable name of the streamed radio station.
+  ```bash
+  export RADIO_STATION_KEY=xyz
+  export RADIO_STATION_NAME='Station XYZ'
+  ```
 
+6. Start the server:
   ```bash
   npm start
   ```

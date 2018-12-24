@@ -5,3 +5,5 @@ node_modules
 .project
 app.yaml
 storage-service-account.json
+firebase-service-account.json
+init.sh
